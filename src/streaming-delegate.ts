@@ -24,6 +24,7 @@ import { RtpSplitter, reservePorts } from './util/rtp';
 import { FfmpegProcess, isFfmpegInstalled, getCodecsOutput } from './ffmpeg';
 import { readFile } from 'fs';
 import { join } from 'path';
+import ip from 'ip';
 import pathToFfmpeg from 'ffmpeg-for-homebridge';
 
 type SessionInfo = {
@@ -148,6 +149,14 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     const audioSrtpSalt = audio.srtp_salt;
     const audioSSRC = this.hap.CameraController.generateSynchronisationSource();
 
+    //address setup
+    const interfaceName = this.config.interfaceName || undefined;
+    const sourceAddress = ip.address(interfaceName);
+    let sourceAddressType: 'v4' | 'v6' = 'v6';
+    if (ip.isV4Format(sourceAddress)) {
+      sourceAddressType = 'v4';
+    }
+
     const sessionInfo: SessionInfo = {
       address: targetAddress,
 
@@ -180,6 +189,10 @@ export class StreamingDelegate implements CameraStreamingDelegate {
 
         srtp_key: audioSrtpKey,
         srtp_salt: audioSrtpSalt,
+      },
+      address: {
+        address: sourceAddress,
+        type: sourceAddressType,
       },
     };
     this.pendingSessions[sessionId] = sessionInfo;
